@@ -146,3 +146,28 @@ def test_writer_rejects_rows_outside_partition_date(tmp_path: Path) -> None:
             rows=[make_kline()],
             spec=spec,
         )
+
+
+def test_writer_keeps_timestamp_fields_as_datetimes_for_bigquery() -> None:
+    loaded_at = datetime(2024, 1, 2, tzinfo=timezone.utc)
+    spec = RawPartitionSpec(
+        source="binance_spot",
+        dataset="klines",
+        symbol="BTCUSDT",
+        interval="1h",
+        partition_date=date(2024, 1, 1),
+    )
+
+    record = GCSRawWriter._kline_to_record(
+        row=make_kline(),
+        spec=spec,
+        loaded_at=loaded_at,
+        batch_id="batch-001",
+    )
+
+    assert isinstance(record["open_time_utc"], datetime)
+    assert isinstance(record["close_time_utc"], datetime)
+    assert isinstance(record["loaded_at"], datetime)
+    assert record["open_time_utc"].tzinfo is not None
+    assert record["close_time_utc"].tzinfo is not None
+    assert record["loaded_at"].tzinfo is not None

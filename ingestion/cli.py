@@ -1,4 +1,4 @@
-"""Command-line interface for market data ingestion."""
+"""Command-line interface for market data ingestion and warehouse loading."""
 
 from __future__ import annotations
 
@@ -10,10 +10,11 @@ from ingestion.clients.binance_spot import BinanceSpotClient
 from ingestion.pipeline import BackfillRequest, IncrementalRequest, IngestionPipeline
 from ingestion.state.watermark import GCSWatermarkStore
 from ingestion.storage.gcs_raw import GCSRawWriter
+from warehouse.load_gcs_to_bq import RawKlinesLoadConfig, load_raw_klines_from_gcs
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Market data ingestion CLI")
+    parser = argparse.ArgumentParser(description="Market data platform CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     backfill = subparsers.add_parser("backfill", help="Backfill raw klines into GCS")
@@ -40,6 +41,15 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Inclusive end date. Required to prevent accidental large-cost runs.",
     )
+
+    load_bq_raw = subparsers.add_parser(
+        "load-bq-raw",
+        help="Load raw GCS Parquet files into BigQuery raw table",
+    )
+    load_bq_raw.add_argument("--project-id", required=True)
+    load_bq_raw.add_argument("--dataset-id", default="raw")
+    load_bq_raw.add_argument("--table-id", default="raw_klines")
+    load_bq_raw.add_argument("--gcs-uri", required=True)
 
     return parser.parse_args()
 
@@ -121,6 +131,18 @@ def main() -> None:
 
         for output in result.outputs:
             logging.info("Wrote %s rows to %s", output.row_count, output.gcs_uri)
+
+    elif args.command == "load-bq-raw":
+        config = RawKlinesLoadConfig(
+            project_id=args.project_id,
+            dataset_id=args.dataset_id,
+            table_id=args.table_id,
+            gcs_uri=args.gcs_uri,
+        )
+
+        destination = load_raw_klines_from_gcs(config=config)
+
+        logging.info("Loaded raw klines into BigQuery table %s", destination)
 
 
 if __name__ == "__main__":
