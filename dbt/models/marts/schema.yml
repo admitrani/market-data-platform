@@ -62,7 +62,6 @@ models:
       - name: open_time_utc
         tests:
           - not_null
-          - unique
 
       - name: open_date
         tests:
