@@ -16,6 +16,7 @@ locals {
   bigquery_datasets = toset([
     "raw",
     "staging",
+    "intermediate",
     "marts",
     "ci"
   ])
