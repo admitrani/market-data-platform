@@ -1,0 +1,17 @@
+sources:
+  - name: binance_spot_klines_btcusdt_1h
+    source: binance_spot
+    dataset: klines
+    symbol: BTCUSDT
+    interval: 1h
+    enabled: true
+    raw_partitioning:
+      partition_by: date
+      path_template: "raw/source={source}/dataset={dataset}/symbol={symbol}/interval={interval}/date={date}/data.parquet"
+    api:
+      base_url: "https://api.binance.com"
+      endpoint: "/api/v3/klines"
+      limit: 1000
+      timeout_seconds: 30
+      max_retries: 5
+      backoff_seconds: 2

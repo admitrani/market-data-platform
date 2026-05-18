@@ -39,3 +39,14 @@ dbt_packages/
 
 # Misc
 tmp/
+# Local runtime artifacts
+.env
+*.log
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local data only for debugging, never source of truth
+data/
+tmp/
