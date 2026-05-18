@@ -120,7 +120,13 @@ class GCSRawWriter:
             dir=self.temp_dir,
             delete=True,
         ) as tmp_file:
-            df.to_parquet(tmp_file.name, index=False)
+            df.to_parquet(
+                tmp_file.name,
+                index=False,
+                engine="pyarrow",
+                coerce_timestamps="us",
+                allow_truncated_timestamps=True,
+            )
 
             bucket = self.client.bucket(self.bucket_name)
             blob = bucket.blob(spec.object_path)

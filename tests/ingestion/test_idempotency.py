@@ -32,12 +32,15 @@ class FakeBlob:
         self.writes = writes
 
     def upload_from_filename(self, filename: str, content_type: str | None = None) -> None:
+        import pyarrow.parquet as pq
+
         self.writes.append(
             {
                 "blob_name": self.name,
                 "filename": filename,
                 "content_type": content_type,
                 "size_bytes": Path(filename).stat().st_size,
+                "parquet_schema": str(pq.read_schema(filename)),
             }
         )
 
@@ -171,3 +174,33 @@ def test_writer_keeps_timestamp_fields_as_datetimes_for_bigquery() -> None:
     assert record["open_time_utc"].tzinfo is not None
     assert record["close_time_utc"].tzinfo is not None
     assert record["loaded_at"].tzinfo is not None
+
+
+
+def test_writer_parquet_timestamps_are_bigquery_compatible(tmp_path: Path) -> None:
+    client = FakeStorageClient()
+    writer = GCSRawWriter(
+        bucket_name="test-raw-bucket",
+        client=client,
+        temp_dir=tmp_path,
+    )
+    spec = RawPartitionSpec(
+        source="binance_spot",
+        dataset="klines",
+        symbol="BTCUSDT",
+        interval="1h",
+        partition_date=date(2024, 1, 1),
+    )
+
+    writer.write_klines_partition(
+        rows=[make_kline()],
+        spec=spec,
+        loaded_at=datetime(2024, 1, 2, tzinfo=timezone.utc),
+        batch_id="batch-001",
+    )
+
+    parquet_schema = client.writes[0]["parquet_schema"]
+
+    assert "open_time_utc: timestamp[us" in parquet_schema
+    assert "close_time_utc: timestamp[us" in parquet_schema
+    assert "loaded_at: timestamp[us" in parquet_schema
