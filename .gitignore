@@ -23,6 +23,7 @@ venv/
 *.tfstate
 *.tfstate.*
 crash.log
+infra/terraform/terraform.tfvars
 
 # Airflow
 airflow_logs/

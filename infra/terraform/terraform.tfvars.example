@@ -3,3 +3,7 @@ gcp_region     = "europe-west1"
 environment    = "dev"
 
 raw_bucket_name = "your-project-market-data-raw-dev"
+
+bigquery_location           = "europe-west1"
+pipeline_service_account_id = "mdp-pipeline-dev"
+secret_id                   = "market-data-api-key-dev"
