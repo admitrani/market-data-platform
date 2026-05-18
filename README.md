@@ -25,8 +25,9 @@ Documentation:
 ## Project Structure
 
 ```text
-services/       # reusable services
-pipelines/      # medallion pipelines
-infra/          # infrastructure-as-code
-orchestration/  # workflow orchestration
-monitoring/     # observability & quality
+ingestion/      # Python ingestion services
+dbt/            # dbt models, tests, documentation and lineage
+airflow/        # Airflow DAGs
+infra/          # Terraform and Docker infrastructure
+tests/          # Python tests
+docs/           # diagrams, SLA docs and demo assets
