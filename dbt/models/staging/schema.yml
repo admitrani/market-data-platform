@@ -4,31 +4,85 @@ sources:
   - name: raw
     database: "{{ env_var('PROJECT_ID') }}"
     schema: raw
+    config:
+      loaded_at_field: loaded_at
+      freshness:
+        warn_after:
+          count: 7
+          period: day
+        error_after:
+          count: 30
+          period: day
     tables:
       - name: raw_klines
+        description: "Raw Binance kline data loaded from partitioned GCS Parquet files into BigQuery."
 
 models:
   - name: stg_klines
     description: "Cleaned and renamed staging model for raw Binance kline market data."
     columns:
+      - name: source
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["binance_spot"]
+
+      - name: source_dataset
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["klines"]
+
       - name: symbol
         tests:
           - not_null
+          - accepted_values:
+              values: ["BTCUSDT"]
+
       - name: bar_interval
         tests:
           - not_null
           - accepted_values:
               values: ["1h"]
+
       - name: open_time_ms
         tests:
           - not_null
           - unique
+
       - name: open_time_utc
         tests:
           - not_null
+          - unique
+
+      - name: open_date
+        tests:
+          - not_null
+
+      - name: open
+        tests:
+          - not_null
+
+      - name: high
+        tests:
+          - not_null
+
+      - name: low
+        tests:
+          - not_null
+
       - name: close
         tests:
           - not_null
+
       - name: volume
+        tests:
+          - not_null
+
+      - name: loaded_at
+        tests:
+          - not_null
+
+      - name: batch_id
         tests:
           - not_null
