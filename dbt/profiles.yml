@@ -8,6 +8,6 @@ market_data_platform:
       dataset: staging
       location: europe-west1
       threads: 2
-      maximum_bytes_billed: 31457280
+      maximum_bytes_billed: 52428800
       job_execution_timeout_seconds: 300
       job_retries: 1
