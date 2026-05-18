@@ -179,3 +179,95 @@ def test_backfill_rejects_invalid_date_range() -> None:
                 end_date=date(2024, 1, 1),
             )
         )
+
+
+class FakeWatermarkStore:
+    def __init__(self, watermark: object | None = None) -> None:
+        self.watermark = watermark
+        self.writes: list[object] = []
+
+    def read(
+        self,
+        *,
+        source: str,
+        dataset: str,
+        symbol: str,
+        interval: str,
+    ):
+        return self.watermark
+
+    def write(self, watermark) -> None:
+        self.watermark = watermark
+        self.writes.append(watermark)
+
+
+def test_incremental_uses_bootstrap_date_when_no_watermark() -> None:
+    client = FakeClient()
+    writer = FakeWriter()
+    watermark_store = FakeWatermarkStore()
+
+    pipeline = IngestionPipeline(
+        client=client,
+        writer=writer,
+        watermark_store=watermark_store,
+    )
+
+    result = pipeline.run_incremental(
+        __import__("ingestion.pipeline", fromlist=["IncrementalRequest"]).IncrementalRequest(
+            source="binance_spot",
+            dataset="klines",
+            symbol="BTCUSDT",
+            interval="1h",
+            bootstrap_start_date=date(2024, 1, 1),
+            end_date=date(2024, 1, 2),
+        )
+    )
+
+    assert result.start_date_used == date(2024, 1, 1)
+    assert result.partitions_written == 2
+    assert result.rows_written == 2
+    assert result.watermark_before is None
+    assert result.watermark_after is not None
+    assert len(watermark_store.writes) == 1
+
+
+def test_incremental_noops_when_watermark_is_after_end_date() -> None:
+    from ingestion.pipeline import IncrementalRequest
+    from ingestion.state.watermark import Watermark
+
+    client = FakeClient()
+    writer = FakeWriter()
+    watermark_store = FakeWatermarkStore(
+        Watermark(
+            source="binance_spot",
+            dataset="klines",
+            symbol="BTCUSDT",
+            interval="1h",
+            last_open_time_ms=_utc_date_start_ms(date(2024, 1, 1)) + 23 * 3_600_000,
+            updated_at=datetime(2024, 1, 2),
+        )
+    )
+
+    pipeline = IngestionPipeline(
+        client=client,
+        writer=writer,
+        watermark_store=watermark_store,
+    )
+
+    result = pipeline.run_incremental(
+        IncrementalRequest(
+            source="binance_spot",
+            dataset="klines",
+            symbol="BTCUSDT",
+            interval="1h",
+            bootstrap_start_date=date(2024, 1, 1),
+            end_date=date(2024, 1, 1),
+        )
+    )
+
+    assert result.start_date_used == date(2024, 1, 2)
+    assert result.partitions_written == 0
+    assert result.rows_written == 0
+    assert len(client.calls) == 0
+    assert len(writer.calls) == 0
+    assert len(watermark_store.writes) == 0

@@ -1,4 +1,4 @@
-"""Ingestion pipeline orchestration for raw market data backfills."""
+"""Ingestion pipeline orchestration for raw market data backfills and incrementals."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from datetime import date, datetime, time, timedelta, timezone
 from typing import Protocol, Sequence
 
 from ingestion.models import Kline
+from ingestion.state.watermark import Watermark, new_watermark
 from ingestion.storage.gcs_raw import GCSWriteResult, RawPartitionSpec
 
 
@@ -30,6 +31,21 @@ class RawWriterLike(Protocol):
         loaded_at: datetime | None = None,
         batch_id: str | None = None,
     ) -> GCSWriteResult:
+        ...
+
+
+class WatermarkStoreLike(Protocol):
+    def read(
+        self,
+        *,
+        source: str,
+        dataset: str,
+        symbol: str,
+        interval: str,
+    ) -> Watermark | None:
+        ...
+
+    def write(self, watermark: Watermark) -> None:
         ...
 
 
@@ -57,12 +73,48 @@ class BackfillRequest:
 
 
 @dataclass(frozen=True)
+class IncrementalRequest:
+    """Incremental ingestion request bounded by an explicit end date."""
+
+    source: str
+    dataset: str
+    symbol: str
+    interval: str
+    bootstrap_start_date: date
+    end_date: date
+    limit: int = 1000
+
+    def validate(self) -> None:
+        if self.bootstrap_start_date > self.end_date:
+            raise ValueError("bootstrap_start_date must be <= end_date")
+
+        if self.limit <= 0 or self.limit > 1000:
+            raise ValueError("limit must be between 1 and 1000")
+
+        if self.interval != "1h":
+            raise ValueError("Phase 1 CORE only supports interval='1h'")
+
+
+@dataclass(frozen=True)
 class BackfillResult:
     """Summary of one backfill execution."""
 
     request: BackfillRequest
     partitions_written: int
     rows_written: int
+    outputs: tuple[GCSWriteResult, ...]
+
+
+@dataclass(frozen=True)
+class IncrementalResult:
+    """Summary of one incremental execution."""
+
+    request: IncrementalRequest
+    start_date_used: date
+    partitions_written: int
+    rows_written: int
+    watermark_before: Watermark | None
+    watermark_after: Watermark | None
     outputs: tuple[GCSWriteResult, ...]
 
 
@@ -73,22 +125,14 @@ class IngestionPipeline:
         self,
         client: BinanceKlineClientLike,
         writer: RawWriterLike,
+        watermark_store: WatermarkStoreLike | None = None,
     ) -> None:
         self.client = client
         self.writer = writer
+        self.watermark_store = watermark_store
 
     def run_backfill(self, request: BackfillRequest) -> BackfillResult:
-        """Run an inclusive date-range backfill.
-
-        Both start_date and end_date are inclusive.
-
-        Example:
-        start_date=2024-01-01, end_date=2024-01-03
-        writes:
-        - date=2024-01-01
-        - date=2024-01-02
-        - date=2024-01-03
-        """
+        """Run an inclusive date-range backfill."""
 
         request.validate()
 
@@ -131,6 +175,79 @@ class IngestionPipeline:
             outputs=tuple(outputs),
         )
 
+    def run_incremental(self, request: IncrementalRequest) -> IncrementalResult:
+        """Run incremental ingestion using a GCS-backed watermark.
+
+        Phase 1 uses daily partition semantics:
+        - if no watermark exists, start from bootstrap_start_date
+        - if watermark exists, start from the day after the last completed partition
+        """
+
+        request.validate()
+
+        if self.watermark_store is None:
+            raise ValueError("watermark_store is required for incremental ingestion")
+
+        watermark_before = self.watermark_store.read(
+            source=request.source,
+            dataset=request.dataset,
+            symbol=request.symbol,
+            interval=request.interval,
+        )
+
+        if watermark_before is None:
+            start_date = request.bootstrap_start_date
+        else:
+            start_date = _utc_date_from_ms(watermark_before.last_open_time_ms) + timedelta(days=1)
+
+        if start_date > request.end_date:
+            return IncrementalResult(
+                request=request,
+                start_date_used=start_date,
+                partitions_written=0,
+                rows_written=0,
+                watermark_before=watermark_before,
+                watermark_after=watermark_before,
+                outputs=tuple(),
+            )
+
+        backfill_result = self.run_backfill(
+            BackfillRequest(
+                source=request.source,
+                dataset=request.dataset,
+                symbol=request.symbol,
+                interval=request.interval,
+                start_date=start_date,
+                end_date=request.end_date,
+                limit=request.limit,
+            )
+        )
+
+        watermark_after: Watermark | None = watermark_before
+
+        if backfill_result.outputs:
+            max_open_time_ms = max(output.max_open_time_ms for output in backfill_result.outputs)
+
+            watermark_after = new_watermark(
+                source=request.source,
+                dataset=request.dataset,
+                symbol=request.symbol,
+                interval=request.interval,
+                last_open_time_ms=max_open_time_ms,
+            )
+
+            self.watermark_store.write(watermark_after)
+
+        return IncrementalResult(
+            request=request,
+            start_date_used=start_date,
+            partitions_written=backfill_result.partitions_written,
+            rows_written=backfill_result.rows_written,
+            watermark_before=watermark_before,
+            watermark_after=watermark_after,
+            outputs=backfill_result.outputs,
+        )
+
 
 def _iter_dates_inclusive(start: date, end: date) -> list[date]:
     return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
@@ -139,3 +256,7 @@ def _iter_dates_inclusive(start: date, end: date) -> list[date]:
 def _utc_date_start_ms(value: date) -> int:
     dt = datetime.combine(value, time.min, tzinfo=timezone.utc)
     return int(dt.timestamp() * 1000)
+
+
+def _utc_date_from_ms(value: int) -> date:
+    return datetime.fromtimestamp(value / 1000, tz=timezone.utc).date()
