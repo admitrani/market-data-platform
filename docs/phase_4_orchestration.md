@@ -258,3 +258,42 @@ This phase demonstrates a production-style orchestration pattern:
 - ingestion and warehouse loading controlled from a DAG
 - validation and cost checks as first-class tasks
 - local-first implementation to avoid unnecessary cloud costs
+
+## Centralized pipeline configuration
+
+The development pipeline configuration lives in:
+
+```text
+config/pipeline_dev.env
+```
+
+This file defines:
+
+```text
+PROJECT_ID
+RAW_BUCKET
+BQ_LOCATION
+SYMBOL
+INTERVAL
+START_DATE
+END_DATE
+BQ_MAX_BYTES
+```
+
+Both the Makefile and the local Airflow DAG read from this config file.
+
+This avoids duplicating runtime parameters and makes the local orchestration layer easier to change safely.
+
+Example:
+
+```bash
+make phase4-dev
+```
+
+and:
+
+```bash
+airflow dags test market_data_platform_dev 2024-01-03
+```
+
+use the same project, bucket, symbol, interval, date range and BigQuery byte limit.

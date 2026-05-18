@@ -1,5 +1,7 @@
 .PHONY: help check-env test ingest-backfill ingest-incremental load-bq-raw dbt-build dbt-docs validate-raw validate-marts cost-check phase4-dev
 
+-include config/pipeline_dev.env
+
 PROJECT_ID ?= $(shell gcloud config get-value project 2>/dev/null)
 TF_DIR ?= infra/terraform
 RAW_BUCKET ?= $(shell cd $(TF_DIR) && terraform output -raw raw_bucket_name 2>/dev/null)

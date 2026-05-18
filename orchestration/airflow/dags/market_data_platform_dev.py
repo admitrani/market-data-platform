@@ -1,12 +1,8 @@
 """Local Airflow DAG for the Market Data Platform dev pipeline.
 
-This DAG intentionally orchestrates Makefile targets instead of duplicating
-pipeline logic inside Airflow. The Makefile remains the reproducible command
-interface; Airflow adds scheduling, dependency management, retries and UI.
-
-Airflow runs in `.venv-airflow`, while each task activates `.venv` before
-executing the actual project commands. This keeps Airflow dependencies isolated
-from dbt/ingestion dependencies.
+The DAG orchestrates Makefile targets instead of duplicating business logic.
+Configuration is read from config/pipeline_dev.env so Airflow and Makefile share
+the same runtime parameters.
 """
 
 from __future__ import annotations
@@ -19,11 +15,33 @@ from airflow.operators.bash import BashOperator
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+PIPELINE_CONFIG_PATH = REPO_ROOT / "config" / "pipeline_dev.env"
 
-PROJECT_ID = "market-data-platform-adam-dev"
-RAW_BUCKET = "market-data-platform-adam-dev-raw-dev"
-BQ_LOCATION = "europe-west1"
-BQ_MAX_BYTES = "52428800"
+
+def load_env_file(path: Path) -> dict[str, str]:
+    """Load simple KEY=VALUE config files without adding extra dependencies."""
+
+    values: dict[str, str] = {}
+
+    if not path.exists():
+        raise FileNotFoundError(f"Pipeline config file not found: {path}")
+
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+
+        if not line or line.startswith("#"):
+            continue
+
+        if "=" not in line:
+            raise ValueError(f"Invalid config line in {path}: {raw_line}")
+
+        key, value = line.split("=", 1)
+        values[key.strip()] = value.strip().strip('"').strip("'")
+
+    return values
+
+
+PIPELINE_ENV = load_env_file(PIPELINE_CONFIG_PATH)
 
 DEFAULT_ARGS = {
     "owner": "adam",
@@ -43,10 +61,7 @@ def make_task(task_id: str, make_target: str) -> BashOperator:
         ),
         env={
             "PYTHONUNBUFFERED": "1",
-            "PROJECT_ID": PROJECT_ID,
-            "RAW_BUCKET": RAW_BUCKET,
-            "BQ_LOCATION": BQ_LOCATION,
-            "BQ_MAX_BYTES": BQ_MAX_BYTES,
+            **PIPELINE_ENV,
         },
         append_env=True,
     )
