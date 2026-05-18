@@ -80,6 +80,58 @@ models:
         tests:
           - not_null
 
+  - name: fact_price_features
+    description: "Feature-enriched price mart for analytics, reporting and future ML feature exploration."
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_symbol')
+                field: symbol
+
+      - name: bar_interval
+        tests:
+          - not_null
+
+      - name: open_time_utc
+        tests:
+          - not_null
+          - unique
+
+      - name: open_date
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_calendar')
+                field: calendar_date
+
+      - name: close
+        tests:
+          - not_null
+
+      - name: volume
+        tests:
+          - not_null
+
+      - name: price_range
+        tests:
+          - not_null
+
+      - name: price_range_pct
+        tests:
+          - not_null
+
+      - name: body_size_pct
+        tests:
+          - not_null
+
+      - name: rolling_window_observations_24h
+        tests:
+          - not_null
+
   - name: fact_price_hourly
     description: "Legacy first walking-skeleton mart with simple hourly returns."
     columns:
