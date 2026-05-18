@@ -50,3 +50,7 @@ __pycache__/
 # Local data only for debugging, never source of truth
 data/
 tmp/
+
+# dbt generated artifacts
+dbt/target/
+dbt/logs/
