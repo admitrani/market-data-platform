@@ -58,3 +58,16 @@ Terraform commands:
 - terraform fmt
 - terraform validate
 - terraform plan
+
+## Local Development
+
+The project uses Docker Compose as the local development entrypoint.
+
+Validate the local stack:
+
+```bash
+docker compose config
+docker compose up --abort-on-container-exit
+```
+
+At this stage, the Compose stack only contains a placeholder service. Airflow, dbt, and ingestion services will be added incrementally in later phases.

@@ -223,3 +223,34 @@ Benefits:
 ### Consequences
 
 API keys and sensitive values must not be stored in plaintext files such as `.env`, YAML configs, or source code.
+
+---
+
+## ADR-008 — Docker Compose for Local Development
+
+### Context
+
+The project requires a reproducible local development environment for services such as ingestion, dbt, and Airflow.
+
+### Decision
+
+Use Docker Compose as the local orchestration layer for development services.
+
+### Rationale
+
+Benefits:
+- reproducible local environment
+- simplified service startup
+- avoids machine-specific setup issues
+- prepares the project for Airflow and dbt containers
+- aligns with production-style engineering practices
+
+### Tradeoffs
+
+- adds containerization complexity
+- requires Docker installed locally
+- local Compose does not fully replicate production cloud infrastructure
+
+### Consequences
+
+Local development services should be added to `docker-compose.yml` incrementally as the platform evolves.
