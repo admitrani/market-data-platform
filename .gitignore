@@ -54,3 +54,6 @@ tmp/
 # dbt generated artifacts
 dbt/target/
 dbt/logs/
+
+# Local Airflow virtualenv
+.venv-airflow/
