@@ -1,4 +1,4 @@
-.PHONY: help check-env test ingest-backfill ingest-incremental load-bq-raw dbt-build dbt-docs validate-raw validate-marts cost-check phase4-dev
+.PHONY: help check-env test ingest-backfill ingest-incremental load-bq-raw dbt-build dbt-docs validate-raw validate-marts cost-check phase4-dev airflow-check airflow-db-migrate airflow-dag-list airflow-dag-test
 
 -include config/pipeline_dev.env
 
@@ -13,6 +13,12 @@ START_DATE ?= 2024-01-01
 END_DATE ?= 2024-01-05
 
 BQ_MAX_BYTES ?= 52428800
+
+AIRFLOW_HOME ?= $(PWD)/.airflow_home
+AIRFLOW_DAGS_FOLDER ?= $(PWD)/orchestration/airflow/dags
+AIRFLOW_BIN ?= $(PWD)/.venv-airflow/bin/airflow
+AIRFLOW_DAG_ID ?= market_data_platform_dev
+AIRFLOW_TEST_DATE ?= 2024-01-03
 
 help:
 	@echo "Market Data Platform orchestration"
@@ -75,3 +81,29 @@ cost-check: check-env
 
 phase4-dev: check-env test ingest-backfill load-bq-raw dbt-build validate-raw validate-marts cost-check
 	@echo "Phase 4 dev orchestration completed successfully."
+
+airflow-check:
+	@test -x "$(AIRFLOW_BIN)" || (echo "Airflow binary not found at $(AIRFLOW_BIN). Create .venv-airflow first." && exit 1)
+	@echo "Airflow OK"
+	@echo "AIRFLOW_HOME=$(AIRFLOW_HOME)"
+	@echo "AIRFLOW_DAGS_FOLDER=$(AIRFLOW_DAGS_FOLDER)"
+	@echo "AIRFLOW_DAG_ID=$(AIRFLOW_DAG_ID)"
+
+airflow-db-migrate: airflow-check
+	AIRFLOW_HOME="$(AIRFLOW_HOME)" \
+	AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" \
+	AIRFLOW__CORE__LOAD_EXAMPLES=False \
+	"$(AIRFLOW_BIN)" db migrate
+
+airflow-dag-list: airflow-check
+	AIRFLOW_HOME="$(AIRFLOW_HOME)" \
+	AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" \
+	AIRFLOW__CORE__LOAD_EXAMPLES=False \
+	"$(AIRFLOW_BIN)" dags list | grep "$(AIRFLOW_DAG_ID)"
+
+airflow-dag-test: airflow-check
+	AIRFLOW_HOME="$(AIRFLOW_HOME)" \
+	AIRFLOW__CORE__DAGS_FOLDER="$(AIRFLOW_DAGS_FOLDER)" \
+	AIRFLOW__CORE__LOAD_EXAMPLES=False \
+	"$(AIRFLOW_BIN)" dags test "$(AIRFLOW_DAG_ID)" "$(AIRFLOW_TEST_DATE)"
+

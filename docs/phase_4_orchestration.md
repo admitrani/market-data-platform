@@ -297,3 +297,30 @@ airflow dags test market_data_platform_dev 2024-01-03
 ```
 
 use the same project, bucket, symbol, interval, date range and BigQuery byte limit.
+
+## Airflow Makefile targets
+
+Airflow can also be controlled through Makefile targets:
+
+```bash
+make airflow-check
+make airflow-db-migrate
+make airflow-dag-list
+make airflow-dag-test
+```
+
+These targets use:
+
+```
+.venv-airflow/bin/airflow
+```
+
+while the DAG tasks themselves activate:
+
+```
+.venv
+```
+
+before running the project pipeline commands.
+
+This keeps orchestration and project runtime dependencies isolated while preserving a single command interface for local development.
