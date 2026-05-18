@@ -133,3 +133,93 @@ Benefits:
 ### Consequences
 
 All cloud infrastructure should be provisioned through Terraform rather than manual console configuration.
+
+---
+
+## ADR-005 — Google Cloud Storage as Raw Landing Zone
+
+### Context
+
+The platform requires a durable and scalable location for externally ingested market data before transformation.
+
+### Decision
+
+Use Google Cloud Storage as the raw landing zone.
+
+### Rationale
+
+Benefits:
+- scalable object storage
+- strong integration with BigQuery and GCP
+- suitable for immutable raw data
+- supports historical reprocessing
+- widely used in production data platforms
+
+### Tradeoffs
+
+- requires cloud billing setup
+- requires lifecycle and access management
+- raw files must be carefully organized to avoid data lake disorder
+
+### Consequences
+
+Raw ingested data should first land in GCS before being loaded or transformed downstream.
+
+---
+
+## ADR-006 — Dedicated Pipeline Service Account
+
+### Context
+
+The platform requires secure execution of ingestion, transformation, and orchestration workloads.
+
+### Decision
+
+Create a dedicated service account for pipeline workloads.
+
+### Rationale
+
+Benefits:
+- avoids using personal user credentials
+- supports least-privilege IAM design
+- prepares the project for Airflow and CI/CD execution
+- improves auditability
+
+### Tradeoffs
+
+- requires IAM configuration
+- permissions must be maintained as the platform grows
+
+### Consequences
+
+Pipeline code should eventually authenticate through this service account rather than through a personal Google account.
+
+---
+
+## ADR-007 — Secret Manager for Sensitive Configuration
+
+### Context
+
+The platform may require API keys or credentials for external market data providers.
+
+### Decision
+
+Use Google Secret Manager for sensitive values.
+
+### Rationale
+
+Benefits:
+- avoids committing secrets to Git
+- centralizes sensitive configuration
+- integrates with IAM
+- supports future production-style deployment
+
+### Tradeoffs
+
+- adds dependency on GCP
+- requires secret access permissions
+- local development requires a clear authentication strategy
+
+### Consequences
+
+API keys and sensitive values must not be stored in plaintext files such as `.env`, YAML configs, or source code.

@@ -31,3 +31,30 @@ airflow/        # Airflow DAGs
 infra/          # Terraform and Docker infrastructure
 tests/          # Python tests
 docs/           # diagrams, SLA docs and demo assets
+```
+
+## Cloud Foundation
+
+The project uses Google Cloud Platform as the cloud foundation.
+
+Provisioned resources:
+
+- Google Cloud Storage raw bucket
+- BigQuery datasets: `raw`, `staging`, `marts`, `ci`
+- Pipeline service account
+- Secret Manager secret
+- IAM bindings managed through Terraform
+
+Infrastructure code is located in:
+
+```text
+infra/terraform/
+```
+
+Terraform commands:
+
+- cd infra/terraform
+- terraform init
+- terraform fmt
+- terraform validate
+- terraform plan
