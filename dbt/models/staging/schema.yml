@@ -1,0 +1,34 @@
+version: 2
+
+sources:
+  - name: raw
+    database: "{{ env_var('PROJECT_ID') }}"
+    schema: raw
+    tables:
+      - name: raw_klines
+
+models:
+  - name: stg_klines
+    description: "Cleaned and renamed staging model for raw Binance kline market data."
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+      - name: bar_interval
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["1h"]
+      - name: open_time_ms
+        tests:
+          - not_null
+          - unique
+      - name: open_time_utc
+        tests:
+          - not_null
+      - name: close
+        tests:
+          - not_null
+      - name: volume
+        tests:
+          - not_null

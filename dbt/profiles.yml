@@ -1,0 +1,12 @@
+market_data_platform:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('PROJECT_ID') }}"
+      dataset: staging
+      threads: 2
+      maximum_bytes_billed: 10485760
+      job_execution_timeout_seconds: 300
+      job_retries: 1
