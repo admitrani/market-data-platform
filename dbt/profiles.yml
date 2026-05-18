@@ -6,7 +6,8 @@ market_data_platform:
       method: oauth
       project: "{{ env_var('PROJECT_ID') }}"
       dataset: staging
+      location: europe-west1
       threads: 2
-      maximum_bytes_billed: 10485760
+      maximum_bytes_billed: 31457280
       job_execution_timeout_seconds: 300
       job_retries: 1

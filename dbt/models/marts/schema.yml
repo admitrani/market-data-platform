@@ -1,21 +1,104 @@
 version: 2
 
 models:
-  - name: fact_price_hourly
-    description: "Hourly price fact mart for market data analytics and downstream trading features."
+  - name: dim_symbol
+    description: "Symbol dimension with basic metadata for each traded instrument."
     columns:
       - name: symbol
         tests:
           - not_null
+          - unique
+
+      - name: asset_class
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["crypto"]
+
+      - name: exchange
+        tests:
+          - not_null
+
+      - name: quote_currency
+        tests:
+          - not_null
+
+  - name: dim_calendar
+    description: "Calendar dimension for date-based joins and reporting."
+    columns:
+      - name: calendar_date
+        tests:
+          - not_null
+          - unique
+
+      - name: calendar_year
+        tests:
+          - not_null
+
+      - name: calendar_month
+        tests:
+          - not_null
+
+      - name: calendar_day
+        tests:
+          - not_null
+
+  - name: fact_prices
+    description: "Canonical OHLCV fact table at symbol and bar interval grain."
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_symbol')
+                field: symbol
+
       - name: bar_interval
         tests:
           - not_null
+
       - name: open_time_utc
         tests:
           - not_null
+          - unique
+
+      - name: open_date
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_calendar')
+                field: calendar_date
+
       - name: close
         tests:
           - not_null
+
+      - name: volume
+        tests:
+          - not_null
+
+  - name: fact_price_hourly
+    description: "Legacy first walking-skeleton mart with simple hourly returns."
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+
+      - name: bar_interval
+        tests:
+          - not_null
+
+      - name: open_time_utc
+        tests:
+          - not_null
+
+      - name: close
+        tests:
+          - not_null
+
       - name: volume
         tests:
           - not_null

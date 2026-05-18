@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: int_klines_normalized
+    description: "Normalized and deduplicated kline records at one row per symbol, interval and open timestamp."
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+
+      - name: bar_interval
+        tests:
+          - not_null
+
+      - name: open_time_utc
+        tests:
+          - not_null
+          - unique
+
+      - name: open_date
+        tests:
+          - not_null
+
+      - name: close
+        tests:
+          - not_null
+
+      - name: volume
+        tests:
+          - not_null
