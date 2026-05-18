@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# MacOS
+.DS_Store
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Airflow
+airflow_logs/
+
+# dbt
+target/
+dbt_packages/
+
+# Testing
+.pytest_cache/
+.coverage
+
+# Misc
+tmp/
