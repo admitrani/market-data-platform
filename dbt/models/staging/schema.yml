@@ -25,25 +25,29 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ["binance_spot"]
+              arguments:
+                values: ["binance_spot"]
 
       - name: source_dataset
         tests:
           - not_null
           - accepted_values:
-              values: ["klines"]
+              arguments:
+                values: ["klines"]
 
       - name: symbol
         tests:
           - not_null
           - accepted_values:
-              values: ["BTCUSDT"]
+              arguments:
+                values: ["BTCUSDT"]
 
       - name: bar_interval
         tests:
           - not_null
           - accepted_values:
-              values: ["1h"]
+              arguments:
+                values: ["1h"]
 
       - name: open_time_ms
         tests:

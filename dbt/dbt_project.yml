@@ -15,3 +15,6 @@ models:
     marts:
       +schema: marts
       +materialized: table
+
+flags:
+  bigquery_use_batch_source_freshness: true
