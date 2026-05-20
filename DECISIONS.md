@@ -254,3 +254,235 @@ Benefits:
 ### Consequences
 
 Local development services should be added to `docker-compose.yml` incrementally as the platform evolves.
+
+---
+
+## ADR-009 — GitHub Actions for CI/CD
+
+### Context
+
+The platform requires automated quality checks to make the repository behave like a production-style data engineering project.
+
+### Decision
+
+Use GitHub Actions as the CI/CD layer.
+
+### Rationale
+
+Benefits:
+- validates changes automatically on pull requests
+- improves engineering discipline
+- creates a professional portfolio signal
+- separates cloud-safe checks from cloud-touching workflows
+
+### Tradeoffs
+
+- requires workflow maintenance
+- CI dependency versions must be managed
+
+### Consequences
+
+Pull requests must pass the local quality workflow before merging to `main`.
+
+---
+
+## ADR-010 — Workload Identity Federation for GitHub to GCP Authentication
+
+### Context
+
+GitHub Actions needs controlled access to Google Cloud for dbt CI, Terraform plan, and authentication smoke tests.
+
+### Decision
+
+Use Google Cloud Workload Identity Federation instead of service account JSON keys.
+
+### Rationale
+
+Benefits:
+- avoids long-lived credentials in GitHub secrets
+- improves security posture
+- aligns with modern cloud IAM practices
+- restricts access to the specific GitHub repository
+
+### Tradeoffs
+
+- initial setup is more complex
+- IAM bindings and provider configuration must be documented
+
+### Consequences
+
+GitHub Actions authenticates using OIDC and a dedicated `github-actions-ci` service account.
+
+---
+
+## ADR-011 — Isolated BigQuery `ci` Dataset for dbt CI
+
+### Context
+
+dbt CI needs to build and test models without modifying development marts or production-like datasets.
+
+### Decision
+
+Use a dedicated BigQuery dataset named `ci` for dbt CI builds.
+
+### Rationale
+
+Benefits:
+- isolates CI writes from development datasets
+- makes test artifacts easy to inspect and clean
+- prevents accidental modification of `staging`, `intermediate`, or `marts`
+- supports low-cost controlled CI validation
+
+### Tradeoffs
+
+- duplicates some dbt objects during CI runs
+- requires schema-generation logic to route all CI models into `ci`
+
+### Consequences
+
+The dbt `generate_schema_name` macro routes all models to `target.schema` when `target.name == "ci"`.
+
+---
+
+## ADR-012 — BigQuery Cost Guardrails in CI
+
+### Context
+
+The project runs on a constrained GCP free plan / free trial budget.
+
+### Decision
+
+Use `maximum_bytes_billed` and separate manual workflows for cloud-touching jobs.
+
+### Rationale
+
+Benefits:
+- prevents unexpectedly large BigQuery scans
+- keeps CI predictable
+- reduces risk of accidental cloud spending
+- makes cost control explicit in the repository
+
+### Tradeoffs
+
+- some legitimate dbt builds can fail if the byte limit is too low
+- thresholds may need adjustment as data volume grows
+
+### Consequences
+
+dbt CI uses `BQ_MAX_BYTES` and cloud-touching workflows are not part of the always-required pull request gate.
+
+---
+
+## ADR-013 — Terraform Remote State in Google Cloud Storage
+
+### Context
+
+Terraform initially used local state, which is not suitable for CI-based planning.
+
+### Decision
+
+Store Terraform state remotely in a dedicated Google Cloud Storage bucket.
+
+### Rationale
+
+Benefits:
+- enables Terraform plan in GitHub Actions
+- avoids state drift between machines
+- supports state versioning
+- improves reproducibility and collaboration readiness
+
+### Tradeoffs
+
+- adds one additional GCP resource
+- requires bucket IAM permissions for the CI service account
+
+### Consequences
+
+Terraform CI runs `plan` against remote state but does not run `apply`.
+
+---
+
+## ADR-014 — No Terraform Apply in CI
+
+### Context
+
+Infrastructure changes should be reviewed carefully, especially in a cost-constrained cloud project.
+
+### Decision
+
+GitHub Actions can run Terraform format, init, validate, and plan, but not apply.
+
+### Rationale
+
+Benefits:
+- avoids accidental infrastructure changes
+- keeps human approval in the loop
+- reduces billing risk
+- still validates infrastructure changes before merge
+
+### Tradeoffs
+
+- infrastructure deployment remains manual
+- requires the developer to run apply intentionally when needed
+
+### Consequences
+
+Any Terraform apply must be executed manually and deliberately.
+
+---
+
+## ADR-015 — SQLFluff for dbt SQL Quality
+
+### Context
+
+The repository contains dbt SQL models and custom data tests that should follow consistent style rules.
+
+### Decision
+
+Use SQLFluff with the BigQuery dialect and dbt templater.
+
+### Rationale
+
+Benefits:
+- validates SQL style automatically
+- supports dbt-aware linting
+- improves maintainability of SQL models
+- catches formatting drift before merge
+
+### Tradeoffs
+
+- adds one more CI dependency
+- SQL lint rules may need tuning to avoid excessive noise
+
+### Consequences
+
+`sql-lint` is part of the cloud-safe local quality gate.
+
+---
+
+## ADR-016 — Protected Main Branch
+
+### Context
+
+The repository should prevent direct changes to `main` and require automated checks before merge.
+
+### Decision
+
+Protect the `main` branch and require pull requests with the `Local quality gates` check passing.
+
+### Rationale
+
+Benefits:
+- prevents unreviewed direct pushes
+- enforces CI discipline
+- simulates a professional team workflow
+- improves portfolio credibility
+
+### Tradeoffs
+
+- small changes require a branch and pull request
+- some workflows remain manual to avoid unnecessary cloud usage
+
+### Consequences
+
+All changes must go through branches and pull requests.
