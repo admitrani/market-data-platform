@@ -185,3 +185,9 @@ observability-coverage: check-env
 
 observability: dbt-source-freshness observability-status observability-cost observability-coverage
 	@echo "Observability checks completed."
+
+.PHONY: trading-v2-contract-check
+
+trading-v2-contract-check: check-env
+	sed "s/__PROJECT_ID__/$(PROJECT_ID)/g" warehouse/consumption/trading_v2_data_contract_check.sql | \
+	bq query --location="$(BQ_LOCATION)" --use_legacy_sql=false --maximum_bytes_billed="$(BQ_MAX_BYTES)"

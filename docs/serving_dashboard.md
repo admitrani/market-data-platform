@@ -96,8 +96,6 @@ Primary table/view:
 marts.dashboard_data_status
 ```
 
-## Suggested Demo Talk Track
-
 This dashboard sits on top of the dbt mart layer.
 
 The ingestion pipeline lands raw market data in GCS and BigQuery raw. dbt then transforms the raw data into staging, intermediate, and mart models with tests, documentation, and CI validation.

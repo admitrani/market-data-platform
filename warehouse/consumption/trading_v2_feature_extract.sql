@@ -1,8 +1,6 @@
-{{
-    config(
-        materialized="view"
-    )
-}}
+-- Feature extraction query for downstream trading/ML research systems.
+-- Replace __PROJECT_ID__ before running manually, or use this as a template
+-- for Python BigQuery client reads.
 
 select
     symbol,
@@ -34,7 +32,8 @@ select
     rolling_window_observations_24h,
 
     loaded_at
-from {{ ref("fact_price_features") }}
-where
-    symbol = 'BTCUSDT'
-    and bar_interval = '1h'
+from `__PROJECT_ID__.marts.dashboard_price_timeseries`
+where symbol = 'BTCUSDT'
+  and bar_interval = '1h'
+order by
+    open_time_utc;
