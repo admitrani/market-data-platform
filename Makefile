@@ -154,3 +154,9 @@ quality: quality-cloud-safe
 
 dbt-ci-build: check-env
 	dbt build --project-dir dbt --profiles-dir dbt --target ci --no-partial-parse
+
+.PHONY: terraform-plan-ci
+
+terraform-plan-ci:
+	cd $(TF_DIR) && terraform init -input=false
+	cd $(TF_DIR) && terraform plan -refresh=false -input=false -no-color

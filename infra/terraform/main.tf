@@ -20,13 +20,18 @@ locals {
     "marts",
     "ci"
   ])
+
+  bigquery_dataset_descriptions = {
+    intermediate = "Intermediate dbt models for market data platform"
+  }
 }
 
 resource "google_bigquery_dataset" "datasets" {
   for_each = local.bigquery_datasets
 
-  dataset_id = each.key
-  location   = var.bigquery_location
+  dataset_id  = each.key
+  location    = var.bigquery_location
+  description = lookup(local.bigquery_dataset_descriptions, each.key, null)
 
   labels = {
     environment = var.environment
