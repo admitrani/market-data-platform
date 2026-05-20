@@ -1,0 +1,50 @@
+name: dbt CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: "market-data-platform-adam-dev"
+  BQ_MAX_BYTES: "10485760"
+
+jobs:
+  dbt-ci:
+    name: Build dbt models in ci dataset
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: "${{ env.PROJECT_ID }}"
+          workload_identity_provider: "projects/445925379836/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
+          service_account: "github-actions-ci@market-data-platform-adam-dev.iam.gserviceaccount.com"
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: Parse dbt project
+        run: dbt parse --project-dir dbt --profiles-dir dbt --target ci --no-partial-parse
+
+      - name: Build dbt models in ci dataset
+        run: make dbt-ci-build

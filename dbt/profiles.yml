@@ -11,3 +11,14 @@ market_data_platform:
       maximum_bytes_billed: 52428800
       job_execution_timeout_seconds: 300
       job_retries: 1
+
+    ci:
+      type: bigquery
+      method: oauth
+      project: "{{ env_var('PROJECT_ID') }}"
+      dataset: ci
+      location: europe-west1
+      threads: 1
+      maximum_bytes_billed: "{{ env_var('BQ_MAX_BYTES', '10485760') | int }}"
+      job_execution_timeout_seconds: 300
+      job_retries: 1

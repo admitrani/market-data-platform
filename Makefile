@@ -149,3 +149,8 @@ quality-cloud-safe: lint test dbt-parse terraform-check docker-check
 
 quality: quality-cloud-safe
 	@echo "Full local quality checks passed."
+
+.PHONY: dbt-ci-build
+
+dbt-ci-build: check-env
+	dbt build --project-dir dbt --profiles-dir dbt --target ci --no-partial-parse
