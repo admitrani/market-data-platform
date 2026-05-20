@@ -168,3 +168,20 @@ sql-lint:
 
 sql-fix:
 	PROJECT_ID="$(PROJECT_ID)" BQ_MAX_BYTES="$(BQ_MAX_BYTES)" sqlfluff fix dbt/models dbt/tests --force
+
+.PHONY: observability-status observability-cost observability-coverage observability
+
+observability-status: check-env
+	sed "s/__PROJECT_ID__/$(PROJECT_ID)/g" warehouse/observability/latest_market_data_status.sql | \
+	bq query --location="$(BQ_LOCATION)" --use_legacy_sql=false --maximum_bytes_billed="$(BQ_MAX_BYTES)"
+
+observability-cost: check-env
+	sed "s/__PROJECT_ID__/$(PROJECT_ID)/g" warehouse/observability/bigquery_usage_last_7_days.sql | \
+	bq query --location="$(BQ_LOCATION)" --use_legacy_sql=false --maximum_bytes_billed="$(BQ_MAX_BYTES)"
+
+observability-coverage: check-env
+	sed "s/__PROJECT_ID__/$(PROJECT_ID)/g" warehouse/observability/data_coverage_by_day.sql | \
+	bq query --location="$(BQ_LOCATION)" --use_legacy_sql=false --maximum_bytes_billed="$(BQ_MAX_BYTES)"
+
+observability: dbt-source-freshness observability-status observability-cost observability-coverage
+	@echo "Observability checks completed."
