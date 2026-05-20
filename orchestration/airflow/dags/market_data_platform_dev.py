@@ -15,6 +15,12 @@ Reliability features:
 - DAG run timeout
 - SLA policy
 - optional Slack failure callback via SLACK_WEBHOOK_URL
+
+Scheduling/backfill behavior:
+- daily schedule
+- catchup disabled to avoid accidental large historical runs
+- default run processes Airflow logical date (`ds`)
+- manual UI/API trigger can pass start_date/end_date in dag_run.conf
 """
 
 from __future__ import annotations
@@ -140,14 +146,17 @@ DEFAULT_ARGS = {
 def make_task(
     task_id: str,
     make_target: str,
+    extra_make_args: str = "",
     timeout_minutes: int = AIRFLOW_TASK_TIMEOUT_MINUTES,
 ) -> BashOperator:
+    command_suffix = f" {extra_make_args}" if extra_make_args else ""
+
     return BashOperator(
         task_id=task_id,
         bash_command=(
             f"cd {REPO_ROOT} && "
             f"if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi && "
-            f"make {make_target}"
+            f"make {make_target}{command_suffix}"
         ),
         env={
             "PYTHONUNBUFFERED": "1",
@@ -159,24 +168,39 @@ def make_task(
     )
 
 
+BACKFILL_DATE_ARGS = (
+    'START_DATE="{{ dag_run.conf.get(\'start_date\', ds) }}" '
+    'END_DATE="{{ dag_run.conf.get(\'end_date\', ds) }}"'
+)
+
+
 with DAG(
     dag_id="market_data_platform_dev",
-    description="Local/Docker orchestration DAG for ingestion, BigQuery load, dbt run/test/freshness and validation.",
+    description="Local/Docker orchestration DAG for scheduled and backfilled market data pipelines.",
     default_args=DEFAULT_ARGS,
     start_date=datetime(2024, 1, 1),
-    schedule_interval=None,
+    schedule="@daily",
     catchup=False,
     max_active_runs=1,
     dagrun_timeout=timedelta(minutes=AIRFLOW_DAG_TIMEOUT_MINUTES),
-    tags=["market-data-platform", "dev", "local", "docker"],
+    tags=["market-data-platform", "dev", "local", "docker", "scheduled"],
 ) as dag:
     check_env = make_task("check_env", "check-env", timeout_minutes=5)
     unit_tests = make_task("unit_tests", "test", timeout_minutes=10)
 
-    extract_load_gcs = make_task("extract_load_gcs", "ingest-backfill", timeout_minutes=15)
+    extract_load_gcs = make_task(
+        "extract_load_gcs",
+        "ingest-backfill",
+        extra_make_args=BACKFILL_DATE_ARGS,
+        timeout_minutes=15,
+    )
     load_bq_raw = make_task("load_bq_raw", "load-bq-raw", timeout_minutes=10)
 
-    dbt_run = make_task("dbt_run", "dbt-run", timeout_minutes=20)
+    dbt_run = make_task(
+        "dbt_run",
+        "{{ 'dbt-run-full-refresh' if dag_run.conf.get('full_refresh', false) else 'dbt-run' }}",
+        timeout_minutes=25,
+    )
     dbt_test = make_task("dbt_test", "dbt-test", timeout_minutes=25)
     dbt_source_freshness = make_task("dbt_source_freshness", "dbt-source-freshness", timeout_minutes=10)
 

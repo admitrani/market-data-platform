@@ -406,3 +406,41 @@ log_url
 If SLACK_WEBHOOK_URL is not set, the callback logs the same payload to stdout. This keeps the project safe for Git while still demonstrating production-style failure notification design.
 
 No Slack secrets are committed to the repository.
+
+## Backfill and incremental recovery policy
+
+The mart layer includes incremental models. A normal daily scheduled run can use:
+
+```text
+dbt-run
+```
+
+However, if a historical date is loaded after a later date already exists in the incremental mart, the incremental filter may skip the older backfilled rows.
+
+The data-quality test assert_fact_prices_no_hourly_gaps is expected to catch this situation.
+
+For controlled historical backfills, the DAG supports:
+
+```json
+{
+  "start_date": "2024-01-08",
+  "end_date": "2024-01-10",
+  "full_refresh": true
+}
+```
+
+When full_refresh=true, the DAG executes:
+
+```
+dbt-run-full-refresh
+````
+
+instead of:
+
+```
+dbt-run
+````
+
+This rebuilds the marts from raw data and removes gaps created by out-of-order historical loads.
+
+This behavior was validated after an intentional out-of-order run caused assert_fact_prices_no_hourly_gaps to fail. Running dbt-run-full-refresh rebuilt the mart to 168 continuous hourly rows from 2024-01-01 00:00:00 to 2024-01-07 23:00:00, and all 72 dbt tests passed.

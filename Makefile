@@ -1,4 +1,4 @@
-.PHONY: help check-env test ingest-backfill ingest-incremental load-bq-raw dbt-build dbt-run dbt-test dbt-source-freshness dbt-docs validate-raw validate-marts cost-check phase4-dev airflow-check airflow-db-migrate airflow-dag-list airflow-dag-test
+.PHONY: help check-env test ingest-backfill ingest-incremental load-bq-raw dbt-build dbt-run dbt-run-full-refresh dbt-test dbt-source-freshness dbt-docs validate-raw validate-marts cost-check phase4-dev airflow-check airflow-db-migrate airflow-dag-list airflow-dag-test
 
 -include config/pipeline_dev.env
 
@@ -71,6 +71,9 @@ dbt-build: check-env
 
 dbt-run: check-env
 	dbt run --project-dir dbt --profiles-dir dbt --no-partial-parse
+
+dbt-run-full-refresh: check-env
+	dbt run --project-dir dbt --profiles-dir dbt --no-partial-parse --full-refresh
 
 dbt-test: check-env
 	dbt test --project-dir dbt --profiles-dir dbt --no-partial-parse
