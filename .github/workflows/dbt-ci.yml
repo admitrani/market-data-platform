@@ -2,6 +2,7 @@ name: dbt CI
 
 on:
   workflow_dispatch:
+  pull_request:
 
 permissions:
   contents: read
@@ -13,15 +14,44 @@ env:
 
 jobs:
   dbt-ci:
-    name: Build dbt models in ci dataset
+    name: dbt CI
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect dbt-related changes
+        id: changes
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "run_dbt=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          git fetch origin "${{ github.base_ref }}" --depth=1
+
+          changed_files="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
+          echo "Changed files:"
+          echo "$changed_files"
+
+          if echo "$changed_files" | grep -E '^(dbt/|Makefile|requirements-dev\.txt|\.github/workflows/dbt-ci\.yml)$' >/dev/null; then
+            echo "run_dbt=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_dbt=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip dbt CI when no dbt-related files changed
+        if: steps.changes.outputs.run_dbt != 'true'
+        run: |
+          echo "No dbt-related changes detected. Skipping BigQuery dbt build."
 
       - name: Set up Python
+        if: steps.changes.outputs.run_dbt == 'true'
         uses: actions/setup-python@v6
         with:
           python-version: "3.11"
@@ -29,11 +59,13 @@ jobs:
           cache-dependency-path: requirements-dev.txt
 
       - name: Install Python dependencies
+        if: steps.changes.outputs.run_dbt == 'true'
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
       - name: Authenticate to Google Cloud
+        if: steps.changes.outputs.run_dbt == 'true'
         uses: google-github-actions/auth@v3
         with:
           project_id: "${{ env.PROJECT_ID }}"
@@ -41,10 +73,13 @@ jobs:
           service_account: "github-actions-ci@market-data-platform-adam-dev.iam.gserviceaccount.com"
 
       - name: Set up gcloud
+        if: steps.changes.outputs.run_dbt == 'true'
         uses: google-github-actions/setup-gcloud@v3
 
       - name: Parse dbt project
+        if: steps.changes.outputs.run_dbt == 'true'
         run: dbt parse --project-dir dbt --profiles-dir dbt --target ci --no-partial-parse
 
       - name: Build dbt models in ci dataset
+        if: steps.changes.outputs.run_dbt == 'true'
         run: make dbt-ci-build
