@@ -433,14 +433,187 @@ When full_refresh=true, the DAG executes:
 
 ```
 dbt-run-full-refresh
-````
+```
 
 instead of:
 
 ```
 dbt-run
-````
+```
 
 This rebuilds the marts from raw data and removes gaps created by out-of-order historical loads.
 
 This behavior was validated after an intentional out-of-order run caused assert_fact_prices_no_hourly_gaps to fail. Running dbt-run-full-refresh rebuilt the mart to 168 continuous hourly rows from 2024-01-01 00:00:00 to 2024-01-07 23:00:00, and all 72 dbt tests passed.
+
+## Phase 4 closeout
+
+### Final architecture
+
+Phase 4 implements a local-first orchestration layer with:
+
+```text
+Docker Compose
+  -> Postgres metadata DB
+  -> Airflow webserver
+  -> Airflow scheduler
+  -> Airflow DAG
+  -> Makefile command interface
+  -> GCS raw ingestion
+  -> BigQuery raw load
+  -> dbt run/test/source freshness
+  -> validation queries
+  -> cost check
+```
+
+The project intentionally avoids Cloud Composer in this phase to prevent unnecessary managed-service cost while still demonstrating production-style Airflow patterns.
+
+### Definition of Done
+
+Phase 4 is considered complete when all of the following are true:
+
+[x] Airflow runs locally
+[x] Airflow runs in Docker Compose
+[x] Postgres metadata DB is used in Docker Compose
+[x] Webserver starts successfully
+[x] Scheduler starts successfully
+[x] DAG is detected by Airflow
+[x] DAG has daily schedule
+[x] catchup is disabled to avoid accidental historical runs
+[x] Manual backfill is supported through dag_run.conf
+[x] Historical backfill supports full_refresh=true
+[x] dbt run, dbt test and dbt source freshness are separate Airflow tasks
+[x] retries are configured
+[x] execution timeouts are configured
+[x] dagrun timeout is configured
+[x] optional Slack failure callback exists
+[x] no Slack secret is committed
+[x] cost-check is part of the DAG
+[x] raw validation is part of the DAG
+[x] marts validation is part of the DAG
+[x] full Docker backfill Jan 8-10 succeeded
+[x] raw and marts reached 240 hourly rows
+[x] BigQuery usage remains far below free-tier limits
+
+### Final validated state
+
+The final controlled historical backfill used:
+
+```json
+{
+  "start_date": "2024-01-08",
+  "end_date": "2024-01-10",
+  "full_refresh": true
+}
+```
+
+Validated warehouse state:
+
+```
+raw.raw_klines:
+  rows_count: 240
+  min_open_time: 2024-01-01 00:00:00
+  max_open_time: 2024-01-10 23:00:00
+
+marts.fact_price_features:
+  rows_count: 240
+  non_null_return_1h: 239
+  non_null_log_return_1h: 239
+  full_24h_windows: 217
+  min_open_time: 2024-01-01 00:00:00
+  max_open_time: 2024-01-10 23:00:00
+```
+
+### Cost state
+
+The final cost check showed BigQuery usage still safely below the monthly free tier:
+
+```
+2026-05-20:
+  query_jobs: 1168
+  processed_mib: 6.1
+  billed_mib: 6250.0
+  billed_tib: 0.00596
+```
+
+This remains far below 1 TiB/month of BigQuery query processing.
+
+### Important production lesson
+
+During Phase 4.9, an intentional out-of-order historical run exposed a real incremental modeling issue:
+
+```
+2024-01-07 was loaded before 2024-01-06.
+```
+
+The dbt test assert_fact_prices_no_hourly_gaps correctly failed.
+
+This validated that:
+
+```
+data-quality tests catch continuity gaps
+scheduled runs can use normal incremental dbt
+historical backfills may require full-refresh recovery
+```
+
+The DAG now supports:
+
+```json
+{
+  "full_refresh": true
+}
+```
+
+for controlled historical backfills.
+
+### Final operational commands
+
+Start Airflow Docker stack:
+
+```bash
+docker compose -f docker-compose.airflow.yml up -d airflow-webserver airflow-scheduler
+```
+
+List DAGs:
+
+```bash
+docker compose -f docker-compose.airflow.yml exec airflow-webserver \
+  airflow dags list | grep market
+```
+
+Trigger controlled historical backfill:
+
+```bash
+docker compose -f docker-compose.airflow.yml exec airflow-webserver \
+  airflow dags trigger market_data_platform_dev \
+  --run-id manual_backfill_YYYY_MM_DD_to_YYYY_MM_DD_full_refresh \
+  --conf '{"start_date":"YYYY-MM-DD","end_date":"YYYY-MM-DD","full_refresh":true}'
+```
+
+List runs:
+
+```bash
+docker compose -f docker-compose.airflow.yml exec airflow-webserver \
+  airflow dags list-runs -d market_data_platform_dev
+```
+
+Validate warehouse:
+
+```bash
+make validate-raw
+make validate-marts
+make cost-check
+```
+
+Stop Airflow Docker stack:
+
+```bash
+docker compose -f docker-compose.airflow.yml down
+```
+
+Stop Airflow Docker stack and delete metadata DB volume:
+
+```bash
+docker compose -f docker-compose.airflow.yml down -v
+```
+
+Use down -v only when you intentionally want to reset local Airflow metadata.
