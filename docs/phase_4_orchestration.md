@@ -354,3 +354,55 @@ check_env
   -> validate_raw / validate_marts
   -> cost_check
 ```
+
+## Reliability policy
+
+The Airflow DAG includes an explicit reliability layer:
+
+```text
+retries
+retry_delay
+retry_exponential_backoff
+execution_timeout
+dagrun_timeout
+SLA policy
+optional failure callback
+```
+
+The policy is configured in:
+
+```
+config/pipeline_dev.env
+```
+
+Current development defaults:
+
+```
+AIRFLOW_RETRIES=1
+AIRFLOW_RETRY_DELAY_MINUTES=2
+AIRFLOW_TASK_TIMEOUT_MINUTES=20
+AIRFLOW_DAG_TIMEOUT_MINUTES=45
+AIRFLOW_SLA_MINUTES=30
+```
+
+Task-specific timeouts are set in the DAG for critical steps such as ingestion, BigQuery loading, dbt run, dbt test, source freshness and validation.
+
+## Failure alerting
+
+The DAG defines an optional failure callback.
+
+If SLACK_WEBHOOK_URL is available in the Airflow runtime environment, failed tasks send a Slack message containing:
+
+```
+dag_id
+task_id
+run_id
+execution_date
+try_number
+exception
+log_url
+```
+
+If SLACK_WEBHOOK_URL is not set, the callback logs the same payload to stdout. This keeps the project safe for Git while still demonstrating production-style failure notification design.
+
+No Slack secrets are committed to the repository.
