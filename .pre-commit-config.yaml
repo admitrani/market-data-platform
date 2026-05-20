@@ -1,0 +1,38 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(dbt/target|dbt/logs)/
+      - id: end-of-file-fixer
+        exclude: ^(dbt/target|dbt/logs)/
+      - id: check-yaml
+        exclude: ^(dbt/target|dbt/logs)/
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check ingestion warehouse orchestration tests
+        language: system
+        pass_filenames: false
+        types_or: [python]
+
+      - id: black-check
+        name: black check
+        entry: black --check ingestion warehouse orchestration tests
+        language: system
+        pass_filenames: false
+        types_or: [python]
+
+      - id: terraform-fmt-check
+        name: terraform fmt check
+        entry: bash -c 'cd infra/terraform && terraform fmt -check'
+        language: system
+        pass_filenames: false
+        files: ^infra/terraform/.*\.tf$
