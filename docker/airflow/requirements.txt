@@ -1,0 +1,9 @@
+pydantic>=2.7
+requests
+pytest
+pandas
+pyarrow
+google-cloud-storage
+google-cloud-bigquery
+dbt-core==1.11.10
+dbt-bigquery==1.11.1

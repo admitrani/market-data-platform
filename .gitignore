@@ -57,3 +57,6 @@ dbt/logs/
 
 # Local Airflow virtualenv
 .venv-airflow/
+
+# Docker/local runtime
+.env.local

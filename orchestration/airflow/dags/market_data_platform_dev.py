@@ -56,7 +56,7 @@ def make_task(task_id: str, make_target: str) -> BashOperator:
         task_id=task_id,
         bash_command=(
             f"cd {REPO_ROOT} && "
-            f". .venv/bin/activate && "
+            f"if [ -f .venv/bin/activate ]; then . .venv/bin/activate; fi && "
             f"make {make_target}"
         ),
         env={
