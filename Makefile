@@ -144,7 +144,7 @@ docker-check:
 	docker compose -f docker-compose.yml config >/dev/null
 	docker compose -f docker-compose.airflow.yml config >/dev/null
 
-quality-cloud-safe: lint test dbt-parse terraform-check docker-check
+quality-cloud-safe: lint test dbt-parse sql-lint terraform-check docker-check
 	@echo "Cloud-safe local quality checks passed."
 
 quality: quality-cloud-safe
@@ -160,3 +160,11 @@ dbt-ci-build: check-env
 terraform-plan-ci:
 	cd $(TF_DIR) && terraform init -input=false
 	cd $(TF_DIR) && terraform plan -refresh=false -input=false -no-color
+
+.PHONY: sql-lint sql-fix
+
+sql-lint:
+	PROJECT_ID="$(PROJECT_ID)" BQ_MAX_BYTES="$(BQ_MAX_BYTES)" sqlfluff lint dbt/models dbt/tests
+
+sql-fix:
+	PROJECT_ID="$(PROJECT_ID)" BQ_MAX_BYTES="$(BQ_MAX_BYTES)" sqlfluff fix dbt/models dbt/tests --force

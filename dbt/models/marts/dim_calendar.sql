@@ -11,7 +11,7 @@ calendar as (
 
     select calendar_date
     from date_bounds,
-    unnest(generate_date_array(min_date, max_date)) as calendar_date
+        unnest(generate_date_array(min_date, max_date)) as calendar_date
 
 )
 
