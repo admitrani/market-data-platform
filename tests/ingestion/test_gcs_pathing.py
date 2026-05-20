@@ -15,8 +15,7 @@ def test_raw_partition_spec_builds_deterministic_object_path() -> None:
     )
 
     assert (
-        spec.object_path
-        == "raw/source=binance_spot/"
+        spec.object_path == "raw/source=binance_spot/"
         "dataset=klines/"
         "symbol=BTCUSDT/"
         "interval=1h/"

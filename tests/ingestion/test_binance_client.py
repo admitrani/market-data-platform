@@ -7,7 +7,6 @@ import pytest
 from ingestion.clients.binance_spot import BinanceSpotClient
 from ingestion.models import Kline
 
-
 SAMPLE_KLINE = [
     1704067200000,
     "42283.58000000",

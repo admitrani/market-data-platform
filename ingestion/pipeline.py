@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta, timezone
-from typing import Protocol, Sequence
+from datetime import UTC, date, datetime, time, timedelta
+from typing import Protocol
 
 from ingestion.models import Kline
 from ingestion.state.watermark import Watermark, new_watermark
@@ -19,8 +20,7 @@ class BinanceKlineClientLike(Protocol):
         start_ms: int,
         end_ms: int,
         limit: int = 1000,
-    ) -> list[Kline]:
-        ...
+    ) -> list[Kline]: ...
 
 
 class RawWriterLike(Protocol):
@@ -30,8 +30,7 @@ class RawWriterLike(Protocol):
         spec: RawPartitionSpec,
         loaded_at: datetime | None = None,
         batch_id: str | None = None,
-    ) -> GCSWriteResult:
-        ...
+    ) -> GCSWriteResult: ...
 
 
 class WatermarkStoreLike(Protocol):
@@ -42,11 +41,9 @@ class WatermarkStoreLike(Protocol):
         dataset: str,
         symbol: str,
         interval: str,
-    ) -> Watermark | None:
-        ...
+    ) -> Watermark | None: ...
 
-    def write(self, watermark: Watermark) -> None:
-        ...
+    def write(self, watermark: Watermark) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -254,9 +251,9 @@ def _iter_dates_inclusive(start: date, end: date) -> list[date]:
 
 
 def _utc_date_start_ms(value: date) -> int:
-    dt = datetime.combine(value, time.min, tzinfo=timezone.utc)
+    dt = datetime.combine(value, time.min, tzinfo=UTC)
     return int(dt.timestamp() * 1000)
 
 
 def _utc_date_from_ms(value: int) -> date:
-    return datetime.fromtimestamp(value / 1000, tz=timezone.utc).date()
+    return datetime.fromtimestamp(value / 1000, tz=UTC).date()

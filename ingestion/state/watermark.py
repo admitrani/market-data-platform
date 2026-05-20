@@ -4,31 +4,26 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Protocol
 
 from google.cloud import storage
 
 
 class BlobLike(Protocol):
-    def exists(self) -> bool:
-        ...
+    def exists(self) -> bool: ...
 
-    def download_as_text(self) -> str:
-        ...
+    def download_as_text(self) -> str: ...
 
-    def upload_from_string(self, data: str, content_type: str | None = None) -> None:
-        ...
+    def upload_from_string(self, data: str, content_type: str | None = None) -> None: ...
 
 
 class BucketLike(Protocol):
-    def blob(self, blob_name: str) -> BlobLike:
-        ...
+    def blob(self, blob_name: str) -> BlobLike: ...
 
 
 class StorageClientLike(Protocol):
-    def bucket(self, bucket_name: str) -> BucketLike:
-        ...
+    def bucket(self, bucket_name: str) -> BucketLike: ...
 
 
 @dataclass(frozen=True)
@@ -48,7 +43,7 @@ class Watermark:
         return json.dumps(payload, indent=2, sort_keys=True)
 
     @classmethod
-    def from_json(cls, raw: str) -> "Watermark":
+    def from_json(cls, raw: str) -> Watermark:
         payload = json.loads(raw)
         return cls(
             source=payload["source"],
@@ -140,5 +135,5 @@ def new_watermark(
         symbol=symbol,
         interval=interval,
         last_open_time_ms=last_open_time_ms,
-        updated_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(UTC),
     )

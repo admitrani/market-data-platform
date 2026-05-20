@@ -121,3 +121,30 @@ airflow-dag-test: airflow-check
 	AIRFLOW__CORE__LOAD_EXAMPLES=False \
 	"$(AIRFLOW_BIN)" dags test "$(AIRFLOW_DAG_ID)" "$(AIRFLOW_TEST_DATE)"
 
+
+.PHONY: lint format dbt-parse terraform-check docker-check quality quality-cloud-safe
+
+lint:
+	ruff check ingestion warehouse orchestration tests
+	black --check ingestion warehouse orchestration tests
+
+format:
+	ruff check ingestion warehouse orchestration tests --fix
+	black ingestion warehouse orchestration tests
+
+dbt-parse:
+	dbt parse --project-dir dbt --profiles-dir dbt --no-partial-parse
+
+terraform-check:
+	cd $(TF_DIR) && terraform fmt -check
+	cd $(TF_DIR) && terraform validate
+
+docker-check:
+	docker compose -f docker-compose.yml config >/dev/null
+	docker compose -f docker-compose.airflow.yml config >/dev/null
+
+quality-cloud-safe: lint test dbt-parse terraform-check docker-check
+	@echo "Cloud-safe local quality checks passed."
+
+quality: quality-cloud-safe
+	@echo "Full local quality checks passed."

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import tempfile
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Protocol, Sequence
+from typing import Protocol
 from uuid import uuid4
 
 import pandas as pd
@@ -16,18 +17,15 @@ from ingestion.models import Kline
 
 
 class BlobLike(Protocol):
-    def upload_from_filename(self, filename: str, content_type: str | None = None) -> None:
-        ...
+    def upload_from_filename(self, filename: str, content_type: str | None = None) -> None: ...
 
 
 class BucketLike(Protocol):
-    def blob(self, blob_name: str) -> BlobLike:
-        ...
+    def blob(self, blob_name: str) -> BlobLike: ...
 
 
 class StorageClientLike(Protocol):
-    def bucket(self, bucket_name: str) -> BucketLike:
-        ...
+    def bucket(self, bucket_name: str) -> BucketLike: ...
 
 
 @dataclass(frozen=True)
@@ -100,7 +98,7 @@ class GCSRawWriter:
 
         self._validate_partition_rows(rows=rows, spec=spec)
 
-        loaded_at = loaded_at or datetime.now(timezone.utc)
+        loaded_at = loaded_at or datetime.now(UTC)
         batch_id = batch_id or str(uuid4())
 
         records = [

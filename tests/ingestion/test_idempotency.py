@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +8,6 @@ import pytest
 
 from ingestion.models import Kline
 from ingestion.storage.gcs_raw import GCSRawWriter, RawPartitionSpec
-
 
 SAMPLE_KLINE = [
     1704067200000,
@@ -83,7 +82,7 @@ def test_writer_uses_same_object_path_for_same_partition(tmp_path: Path) -> None
         partition_date=date(2024, 1, 1),
     )
 
-    loaded_at = datetime(2024, 1, 2, tzinfo=timezone.utc)
+    loaded_at = datetime(2024, 1, 2, tzinfo=UTC)
 
     first = writer.write_klines_partition(
         rows=[make_kline()],
@@ -152,7 +151,7 @@ def test_writer_rejects_rows_outside_partition_date(tmp_path: Path) -> None:
 
 
 def test_writer_keeps_timestamp_fields_as_datetimes_for_bigquery() -> None:
-    loaded_at = datetime(2024, 1, 2, tzinfo=timezone.utc)
+    loaded_at = datetime(2024, 1, 2, tzinfo=UTC)
     spec = RawPartitionSpec(
         source="binance_spot",
         dataset="klines",
@@ -176,7 +175,6 @@ def test_writer_keeps_timestamp_fields_as_datetimes_for_bigquery() -> None:
     assert record["loaded_at"].tzinfo is not None
 
 
-
 def test_writer_parquet_timestamps_are_bigquery_compatible(tmp_path: Path) -> None:
     client = FakeStorageClient()
     writer = GCSRawWriter(
@@ -195,7 +193,7 @@ def test_writer_parquet_timestamps_are_bigquery_compatible(tmp_path: Path) -> No
     writer.write_klines_partition(
         rows=[make_kline()],
         spec=spec,
-        loaded_at=datetime(2024, 1, 2, tzinfo=timezone.utc),
+        loaded_at=datetime(2024, 1, 2, tzinfo=UTC),
         batch_id="batch-001",
     )
 

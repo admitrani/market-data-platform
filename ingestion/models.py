@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -31,7 +31,7 @@ class Kline(BaseModel):
     taker_buy_quote_asset_volume: float = Field(ge=0)
 
     @model_validator(mode="after")
-    def validate_ohlcv_consistency(self) -> "Kline":
+    def validate_ohlcv_consistency(self) -> Kline:
         if self.high < max(self.open, self.close):
             raise ValueError("high must be >= max(open, close)")
 
@@ -45,14 +45,14 @@ class Kline(BaseModel):
 
     @property
     def open_datetime_utc(self) -> datetime:
-        return datetime.fromtimestamp(self.open_time_ms / 1000, tz=timezone.utc)
+        return datetime.fromtimestamp(self.open_time_ms / 1000, tz=UTC)
 
     @property
     def close_datetime_utc(self) -> datetime:
-        return datetime.fromtimestamp(self.close_time_ms / 1000, tz=timezone.utc)
+        return datetime.fromtimestamp(self.close_time_ms / 1000, tz=UTC)
 
     @classmethod
-    def from_binance_row(cls, row: list[Any]) -> "Kline":
+    def from_binance_row(cls, row: list[Any]) -> Kline:
         """Build a typed Kline from Binance's raw REST API payload.
 
         Expected Binance kline format:

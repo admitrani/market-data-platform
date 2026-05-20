@@ -32,9 +32,9 @@ from pathlib import Path
 from typing import Any
 
 import requests
-from airflow import DAG
 from airflow.operators.bash import BashOperator
 
+from airflow import DAG
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PIPELINE_CONFIG_PATH = REPO_ROOT / "config" / "pipeline_dev.env"
@@ -169,14 +169,16 @@ def make_task(
 
 
 BACKFILL_DATE_ARGS = (
-    'START_DATE="{{ dag_run.conf.get(\'start_date\', ds) }}" '
-    'END_DATE="{{ dag_run.conf.get(\'end_date\', ds) }}"'
+    "START_DATE=\"{{ dag_run.conf.get('start_date', ds) }}\" "
+    "END_DATE=\"{{ dag_run.conf.get('end_date', ds) }}\""
 )
 
 
 with DAG(
     dag_id="market_data_platform_dev",
-    description="Local/Docker orchestration DAG for scheduled and backfilled market data pipelines.",
+    description=(
+        "Local/Docker orchestration DAG for scheduled and backfilled market data pipelines."
+    ),
     default_args=DEFAULT_ARGS,
     start_date=datetime(2024, 1, 1),
     schedule="@daily",
@@ -202,7 +204,11 @@ with DAG(
         timeout_minutes=25,
     )
     dbt_test = make_task("dbt_test", "dbt-test", timeout_minutes=25)
-    dbt_source_freshness = make_task("dbt_source_freshness", "dbt-source-freshness", timeout_minutes=10)
+    dbt_source_freshness = make_task(
+        "dbt_source_freshness",
+        "dbt-source-freshness",
+        timeout_minutes=10,
+    )
 
     validate_raw = make_task("validate_raw", "validate-raw", timeout_minutes=5)
     validate_marts = make_task("validate_marts", "validate-marts", timeout_minutes=5)

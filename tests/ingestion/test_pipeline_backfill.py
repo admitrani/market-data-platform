@@ -1,14 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date, datetime
-from typing import Sequence
 
 import pytest
 
 from ingestion.models import Kline
 from ingestion.pipeline import BackfillRequest, IngestionPipeline, _utc_date_start_ms
 from ingestion.storage.gcs_raw import GCSWriteResult, RawPartitionSpec
-
 
 SAMPLE_KLINE = [
     1704067200000,

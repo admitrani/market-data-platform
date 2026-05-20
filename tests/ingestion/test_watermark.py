@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 
 from ingestion.state.watermark import GCSWatermarkStore, Watermark
 
@@ -46,8 +45,7 @@ def test_watermark_path_is_deterministic() -> None:
     )
 
     assert (
-        path
-        == "state/watermarks/source=binance_spot/"
+        path == "state/watermarks/source=binance_spot/"
         "dataset=klines/"
         "symbol=BTCUSDT/"
         "interval=1h/"
@@ -79,7 +77,7 @@ def test_write_and_read_watermark_roundtrip() -> None:
         symbol="BTCUSDT",
         interval="1h",
         last_open_time_ms=1704150000000,
-        updated_at=datetime(2024, 1, 2, tzinfo=timezone.utc),
+        updated_at=datetime(2024, 1, 2, tzinfo=UTC),
     )
 
     store.write(original)

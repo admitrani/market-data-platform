@@ -85,7 +85,9 @@ class BinanceSpotClient:
 
                 if response.status_code == 429:
                     retry_after = response.headers.get("Retry-After")
-                    sleep_seconds = int(retry_after) if retry_after else self.backoff_seconds * attempt
+                    sleep_seconds = (
+                        int(retry_after) if retry_after else self.backoff_seconds * attempt
+                    )
 
                     logger.warning(
                         "Binance rate limit hit; backing off",

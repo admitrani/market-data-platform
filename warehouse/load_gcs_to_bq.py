@@ -14,8 +14,7 @@ class BigQueryClientLike(Protocol):
         source_uris: str | list[str],
         destination: str,
         job_config: bigquery.LoadJobConfig,
-    ):
-        ...
+    ): ...
 
 
 @dataclass(frozen=True)
