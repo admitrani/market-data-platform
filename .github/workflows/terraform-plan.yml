@@ -1,0 +1,51 @@
+name: Terraform Plan
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "infra/terraform/**"
+      - ".github/workflows/terraform-plan.yml"
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: "market-data-platform-adam-dev"
+  TF_VAR_gcp_project_id: "market-data-platform-adam-dev"
+  TF_VAR_gcp_region: "europe-west1"
+  TF_VAR_environment: "dev"
+  TF_VAR_raw_bucket_name: "market-data-platform-adam-dev-raw-dev"
+  TF_VAR_bigquery_location: "europe-west1"
+  TF_VAR_pipeline_service_account_id: "mdp-pipeline-dev"
+  TF_VAR_secret_id: "market-data-api-key-dev"
+
+jobs:
+  terraform-plan:
+    name: Terraform plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          project_id: "${{ env.PROJECT_ID }}"
+          workload_identity_provider: "projects/445925379836/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
+          service_account: "github-actions-ci@market-data-platform-adam-dev.iam.gserviceaccount.com"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+
+      - name: Terraform fmt check
+        run: terraform -chdir=infra/terraform fmt -check
+
+      - name: Terraform init
+        run: terraform -chdir=infra/terraform init -input=false
+
+      - name: Terraform plan
+        run: terraform -chdir=infra/terraform plan -refresh=false -input=false -no-color
