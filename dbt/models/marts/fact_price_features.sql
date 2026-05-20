@@ -62,7 +62,6 @@ features as (
         case
             when close > 0 and previous_close > 0
                 then ln(safe_divide(close, previous_close))
-            else null
         end as log_return_1h,
 
         high - low as price_range,

@@ -16,8 +16,9 @@ gaps as (
 
     select *
     from ordered
-    where previous_open_time_utc is not null
-      and timestamp_diff(open_time_utc, previous_open_time_utc, hour) != 1
+    where
+        previous_open_time_utc is not null
+        and timestamp_diff(open_time_utc, previous_open_time_utc, hour) != 1
 
 )
 

@@ -12,5 +12,6 @@ with ordered as (
 
 select *
 from ordered
-where row_number_ascending = 1
-  and return_1h is not null
+where
+    row_number_ascending = 1
+    and return_1h is not null

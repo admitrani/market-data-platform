@@ -9,7 +9,7 @@ permissions:
 
 env:
   PROJECT_ID: "market-data-platform-adam-dev"
-  BQ_MAX_BYTES: "10485760"
+  BQ_MAX_BYTES: "31457280"
 
 jobs:
   dbt-ci:

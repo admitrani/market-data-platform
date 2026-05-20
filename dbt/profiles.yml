@@ -19,6 +19,6 @@ market_data_platform:
       dataset: ci
       location: europe-west1
       threads: 1
-      maximum_bytes_billed: "{{ env_var('BQ_MAX_BYTES', '10485760') | int }}"
+      maximum_bytes_billed: "{{ env_var('BQ_MAX_BYTES', '31457280') | int }}"
       job_execution_timeout_seconds: 300
       job_retries: 1

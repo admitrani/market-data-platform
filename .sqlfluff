@@ -1,0 +1,18 @@
+[sqlfluff]
+dialect = bigquery
+templater = dbt
+max_line_length = 120
+exclude_rules = RF02, ST06
+
+[sqlfluff:templater:dbt]
+project_dir = dbt
+profiles_dir = dbt
+profile = market_data_platform
+target = ci
+dbt_skip_compilation_error = True
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
