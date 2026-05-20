@@ -35,3 +35,6 @@ ignore = []
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-ra"
+
+[tool.ruff.lint.isort]
+known-third-party = ["airflow", "requests"]

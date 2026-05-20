@@ -32,9 +32,8 @@ from pathlib import Path
 from typing import Any
 
 import requests
-from airflow.operators.bash import BashOperator
-
 from airflow import DAG
+from airflow.operators.bash import BashOperator
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PIPELINE_CONFIG_PATH = REPO_ROOT / "config" / "pipeline_dev.env"
