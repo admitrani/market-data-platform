@@ -617,3 +617,43 @@ docker compose -f docker-compose.airflow.yml down -v
 ```
 
 Use down -v only when you intentionally want to reset local Airflow metadata.
+
+## Dev scheduler safety note
+
+During Phase 4 closeout, unpausing the daily scheduled DAG created a real scheduled
+run for the latest Airflow interval. Because the development dataset is a small
+historical demo range from 2024-01-01 to 2024-01-10, that scheduled run ingested
+a live-date partition for 2026-05-19.
+
+This correctly caused the dbt data-quality test `assert_fact_prices_no_hourly_gaps`
+to fail, because the mart contained a large gap between the historical demo range
+and the live scheduled date.
+
+Resolution:
+
+```text
+1. Pause the DAG in dev.
+2. Remove the accidental live-date GCS partition.
+3. Reload raw from clean GCS partitions.
+4. Rebuild marts with dbt full-refresh.
+5. Re-run dbt tests and validation queries.
+```
+
+Final recovered state:
+
+```
+raw.raw_klines:
+  rows_count: 240
+  min_open_time: 2024-01-01 00:00:00
+  max_open_time: 2024-01-10 23:00:00
+
+marts.fact_price_features:
+  rows_count: 240
+  non_null_return_1h: 239
+  non_null_log_return_1h: 239
+  full_24h_windows: 217
+  min_open_time: 2024-01-01 00:00:00
+  max_open_time: 2024-01-10 23:00:00
+```
+
+In local development, the DAG should remain paused by default unless intentionally testing scheduler behavior. Manual backfills with explicit dag_run.conf are the preferred safe execution mode for the historical demo dataset.
