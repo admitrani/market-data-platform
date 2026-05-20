@@ -133,3 +133,19 @@ Guardrails include:
 The `main` branch is protected.
 
 Changes must be introduced through pull requests and pass the required `Local quality gates` status check before merge.
+
+## Portfolio Materials
+
+The repository includes portfolio-ready documentation:
+
+- `docs/scale_up_plan.md` — how the platform would evolve into production.
+- `docs/serving_dashboard.md` — Looker Studio / dashboard serving-layer guide.
+- `docs/data_sla.md` — data freshness, quality, and cost-control SLA.
+- `docs/observability.md` — observability commands and interpretation.
+- `docs/trading_v2_integration.md` — downstream trading/ML consumption contract.
+
+Suggested demo flow:
+
+```text
+README → ARCHITECTURE.md → GitHub Actions → dbt models/tests → BigQuery marts
+```
