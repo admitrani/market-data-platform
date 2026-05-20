@@ -152,3 +152,72 @@ models:
       - name: volume
         tests:
           - not_null
+
+  - name: dashboard_price_timeseries
+    description: "Serving view for Looker Studio time-series charts over BTCUSDT 1h market features."
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+
+      - name: bar_interval
+        tests:
+          - not_null
+
+      - name: open_time_utc
+        tests:
+          - not_null
+
+      - name: close
+        tests:
+          - not_null
+
+      - name: volume
+        tests:
+          - not_null
+
+  - name: dashboard_daily_summary
+    description: "Serving view with daily OHLCV and return aggregates for dashboard reporting."
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+
+      - name: bar_interval
+        tests:
+          - not_null
+
+      - name: open_date
+        tests:
+          - not_null
+
+      - name: daily_close
+        tests:
+          - not_null
+
+      - name: daily_volume
+        tests:
+          - not_null
+
+  - name: dashboard_data_status
+    description: "Serving view exposing dataset coverage, freshness, and rolling-window completeness for demos and monitoring."
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+
+      - name: bar_interval
+        tests:
+          - not_null
+
+      - name: total_bars
+        tests:
+          - not_null
+
+      - name: latest_market_bar_utc
+        tests:
+          - not_null
+
+      - name: latest_loaded_at
+        tests:
+          - not_null
