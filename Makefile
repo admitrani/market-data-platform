@@ -137,6 +137,7 @@ dbt-parse:
 
 terraform-check:
 	cd $(TF_DIR) && terraform fmt -check
+	cd $(TF_DIR) && terraform init -backend=false -input=false
 	cd $(TF_DIR) && terraform validate
 
 docker-check:
