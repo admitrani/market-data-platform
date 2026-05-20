@@ -63,3 +63,4 @@ dbt/logs/
 
 # Local Airflow runtime
 .airflow_home/
+dbt/.user.yml
