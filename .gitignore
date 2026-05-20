@@ -60,3 +60,6 @@ dbt/logs/
 
 # Docker/local runtime
 .env.local
+
+# Local Airflow runtime
+.airflow_home/
