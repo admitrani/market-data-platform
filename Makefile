@@ -1,4 +1,4 @@
-.PHONY: help check-env test ingest-backfill ingest-incremental load-bq-raw dbt-build dbt-docs validate-raw validate-marts cost-check phase4-dev airflow-check airflow-db-migrate airflow-dag-list airflow-dag-test
+.PHONY: help check-env test ingest-backfill ingest-incremental load-bq-raw dbt-build dbt-run dbt-test dbt-source-freshness dbt-docs validate-raw validate-marts cost-check phase4-dev airflow-check airflow-db-migrate airflow-dag-list airflow-dag-test
 
 -include config/pipeline_dev.env
 
@@ -13,6 +13,8 @@ START_DATE ?= 2024-01-01
 END_DATE ?= 2024-01-05
 
 BQ_MAX_BYTES ?= 52428800
+
+export PROJECT_ID RAW_BUCKET BQ_LOCATION SYMBOL INTERVAL START_DATE END_DATE BQ_MAX_BYTES
 
 AIRFLOW_HOME ?= $(PWD)/.airflow_home
 AIRFLOW_DAGS_FOLDER ?= $(PWD)/orchestration/airflow/dags
@@ -66,6 +68,15 @@ load-bq-raw: check-env
 
 dbt-build: check-env
 	dbt build --project-dir dbt --profiles-dir dbt --no-partial-parse
+
+dbt-run: check-env
+	dbt run --project-dir dbt --profiles-dir dbt --no-partial-parse
+
+dbt-test: check-env
+	dbt test --project-dir dbt --profiles-dir dbt --no-partial-parse
+
+dbt-source-freshness: check-env
+	dbt source freshness --project-dir dbt --profiles-dir dbt --no-partial-parse
 
 dbt-docs: check-env
 	dbt docs generate --project-dir dbt --profiles-dir dbt --no-partial-parse

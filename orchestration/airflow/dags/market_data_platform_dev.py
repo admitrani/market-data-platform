@@ -1,8 +1,12 @@
-"""Local Airflow DAG for the Market Data Platform dev pipeline.
+"""Local/Docker Airflow DAG for the Market Data Platform dev pipeline.
 
 The DAG orchestrates Makefile targets instead of duplicating business logic.
 Configuration is read from config/pipeline_dev.env so Airflow and Makefile share
 the same runtime parameters.
+
+Supported runtimes:
+- local .venv-airflow + SQLite
+- Docker Compose Airflow + Postgres metadata DB
 """
 
 from __future__ import annotations
@@ -46,7 +50,7 @@ PIPELINE_ENV = load_env_file(PIPELINE_CONFIG_PATH)
 DEFAULT_ARGS = {
     "owner": "adam",
     "depends_on_past": False,
-    "retries": 0,
+    "retries": 1,
     "retry_delay": timedelta(minutes=2),
 }
 
@@ -69,22 +73,28 @@ def make_task(task_id: str, make_target: str) -> BashOperator:
 
 with DAG(
     dag_id="market_data_platform_dev",
-    description="Local orchestration DAG for ingestion, BigQuery load, dbt build and validation.",
+    description="Local/Docker orchestration DAG for ingestion, BigQuery load, dbt run/test/freshness and validation.",
     default_args=DEFAULT_ARGS,
     start_date=datetime(2024, 1, 1),
     schedule_interval=None,
     catchup=False,
     max_active_runs=1,
-    tags=["market-data-platform", "dev", "local"],
+    tags=["market-data-platform", "dev", "local", "docker"],
 ) as dag:
     check_env = make_task("check_env", "check-env")
-    test = make_task("test", "test")
-    ingest_backfill = make_task("ingest_backfill", "ingest-backfill")
+    unit_tests = make_task("unit_tests", "test")
+
+    extract_load_gcs = make_task("extract_load_gcs", "ingest-backfill")
     load_bq_raw = make_task("load_bq_raw", "load-bq-raw")
-    dbt_build = make_task("dbt_build", "dbt-build")
+
+    dbt_run = make_task("dbt_run", "dbt-run")
+    dbt_test = make_task("dbt_test", "dbt-test")
+    dbt_source_freshness = make_task("dbt_source_freshness", "dbt-source-freshness")
+
     validate_raw = make_task("validate_raw", "validate-raw")
     validate_marts = make_task("validate_marts", "validate-marts")
     cost_check = make_task("cost_check", "cost-check")
 
-    check_env >> test >> ingest_backfill >> load_bq_raw >> dbt_build
-    dbt_build >> [validate_raw, validate_marts] >> cost_check
+    check_env >> unit_tests >> extract_load_gcs >> load_bq_raw
+    load_bq_raw >> dbt_run >> dbt_test >> dbt_source_freshness
+    dbt_source_freshness >> [validate_raw, validate_marts] >> cost_check

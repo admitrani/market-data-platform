@@ -324,3 +324,33 @@ while the DAG tasks themselves activate:
 before running the project pipeline commands.
 
 This keeps orchestration and project runtime dependencies isolated while preserving a single command interface for local development.
+
+## Production-shaped DAG
+
+The Airflow DAG now separates dbt execution into distinct tasks:
+
+```text
+dbt_run
+  -> dbt_test
+  -> dbt_source_freshness
+```
+
+This is more production-like than calling dbt build as a single opaque step because the Airflow UI can show whether the failure came from:
+
+- model execution
+- data tests
+- source freshness
+
+The DAG flow is:
+
+```
+check_env
+  -> unit_tests
+  -> extract_load_gcs
+  -> load_bq_raw
+  -> dbt_run
+  -> dbt_test
+  -> dbt_source_freshness
+  -> validate_raw / validate_marts
+  -> cost_check
+```
