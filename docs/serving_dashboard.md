@@ -103,3 +103,17 @@ The ingestion pipeline lands raw market data in GCS and BigQuery raw. dbt then t
 The dashboard uses a separate serving layer so that business-facing reporting does not directly depend on lower-level transformation models.
 
 The project is cost-controlled for a GCP free plan through BigQuery byte limits, manual cloud-touching workflows, and branch protection.
+
+## Looker Studio Report
+
+Dashboard URL:
+
+```text
+https://datastudio.google.com/reporting/f5658838-b5e3-4daa-967c-eedb8a17abdd/page/1HtyF
+```
+
+Access mode:
+
+```
+Restricted during development. Can be changed to link-view access for portfolio sharing.
+```
